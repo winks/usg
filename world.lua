@@ -123,7 +123,7 @@ function world.print_ship(ship, gfx)
     world.fill("_", cell)
     utils.printf("\\")
     print("")
-  end
+  end -- end gfx
   for x = 1, #ship do
     row = ship[x]
     if gfx then
