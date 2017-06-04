@@ -33,16 +33,17 @@ function love.load()
   people.show_person(chars[1])
   print("")
 
-  ship = world.gen_ship(2, 3)
-  world.print_ship(ship)
-  print("")
-  world.print_ship(ship, true)
+  ship = world.gen_ship(3, 3)
+  --world.print_ship(ship)
+  --print("")
 
   ret = world.assign(ship, 1, 1, one)
-  print(ret ~= false)
-  utils.dbg(world.show_assigned(ship))
+  utils.dbg(world.get_assigned(ship))
+
+  world.print_ship(ship, true)
 
   rates = world.get_rates(ship)
+  print("RATES:")
   utils.dbg(rates)
   world.update_rates(state, rates)
 

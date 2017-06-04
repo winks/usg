@@ -1,4 +1,5 @@
 local utils = require("utils")
+local people = require("people")
 
 local world = {}
 
@@ -85,35 +86,40 @@ function world.print_ship(ship, gfx)
     left_wall = "|"
     right_wall = "|"
 
+    print("")
     print('   USS "I suck at ascii art"')
     print("")
-    -- first row
+    -- first * row
     utils.printf("%s%s", left_margin, "           ")
-    world.fill("*", (ship_width * cell) + - 17)
+    world.fill("*", (ship_width * (cell+2)) + (ship_width-1) - 6 - 4 - 6 - 6)
     print("")
-    -- first row
+    -- second * row
     utils.printf("%s%s", left_margin, "        ")
-    world.fill("*", (ship_width * cell) + - 11)
+    world.fill("*", (ship_width * (cell+2)) + (ship_width-1) - 6 - 4 - 6)
     print("")
-    -- first row
+    -- third * row
     utils.printf("%s%s", left_margin, "     ")
-    world.fill("*", (ship_width * cell) - 5)
+    world.fill("*", (ship_width * (cell+2)) + (ship_width-1) - 6 - 4)
     print("")
-    -- first row
+    -- first X row
     utils.printf("%s%s", left_margin, "  /")
-    world.fill("X", (ship_width * cell) - 1)
+    world.fill("X", (ship_width * (cell+2)) + (ship_width-1) - 6)
     print("\\")
-    -- second row
+    -- top /\ row
     utils.printf("%s%s", left_margin, " /")
-    world.fill("_", cell-1)
-    utils.printf("| |")
+    for i = 1, ship_width-1 do
+      world.fill("_", cell-2+i)
+      utils.printf("| |")
+    end
     world.fill("_", cell-1)
     utils.printf("\\")
     print("")
-    -- second row
+    -- bottom /\ row
     utils.printf("%s%s", left_margin, "/")
-    world.fill("_", cell)
-    utils.printf("| |")
+    for i = 1, ship_width-1 do
+      world.fill("_", cell)
+      utils.printf("| |")
+    end
     world.fill("_", cell)
     utils.printf("\\")
     print("")
@@ -129,6 +135,7 @@ function world.print_ship(ship, gfx)
     end
     print("")
     if gfx then
+      -- room.kind line
       empty = true
       for y = 1, #row do
         if ship[x][y].kind ~= 'empty' then
@@ -146,6 +153,28 @@ function world.print_ship(ship, gfx)
         end
         print("")
       end
+      -- room.people line
+      empty = true
+      for y = 1, #row do
+        if ship[x][y].kind ~= 'empty' then
+          empty = false
+        end
+      end
+      if empty then
+        world.print_row(#row, left_margin, cell, left_wall, right_wall, " ", middle)
+      else
+        utils.printf(left_margin)
+        for y = 1, #row do
+          px = ""
+          for ii, xx in ipairs(ship[x][y].people) do
+            px = px .. "(" .. people.firstname(xx) .. ")"
+          end
+          utils.printf("%s %" .. (cell-2) .. "s %s%s", left_wall,
+                 ship[x][y].kind == 'empty' and '' or px,
+                 right_wall, middle)
+        end
+        print("")
+      end
       world.print_row(#row, left_margin, cell, left_wall, right_wall, "_", middle)
     end
   end
@@ -153,32 +182,39 @@ function world.print_ship(ship, gfx)
   if gfx then
     -- first row
     utils.printf(" /")
-    world.fill("_", (ship_width * cell) + 5)
+    world.fill("_", (ship_width * (cell+2)) + (ship_width-1))
     utils.printf("\\")
     print("")
     -- second row
+    -- 2 -> 27/28 => 7x4
+    -- 3 -> 41/42 => 7x3 
+    -- 4 -> 55/56 => 7x8
+    -- 5 -> 69/70 => 7x10
     utils.printf(" ")
-    for i = 1, (cell-4) do
-      utils.printf("|   ")
+    for i = 1, 7 do
+      utils.printf("|")
+      world.fill(" ", (ship_width*2)-1)
     end
     print("|")
     -- third row
     utils.printf(" ")
-    for i = 1, (cell-4) do
-      utils.printf("|___")
+    for i = 1, 7 do
+      utils.printf("|")
+      world.fill("_", (ship_width*2)-1)
     end
     print("|")
     -- third row
     utils.printf(" ")
-    for i = 1, (cell-4) do
-      utils.printf(" vvv")
+    for i = 1, 7 do
+      utils.printf(" ")
+      world.fill("v", (ship_width*2)-1)
     end
     print("")
   end
   print("")
 end
 
-function world.get_rates(ship)
+function world.get_rates(ship, skip_people)
   local rates = {}
   for _, k in ipairs(world.seed_resources) do
     rates[k] = 0
@@ -191,6 +227,15 @@ function world.get_rates(ship)
         resource = seed_rooms[kind].resource
         rate = seed_rooms[kind].base_rate
         rates[resource] = rates[resource] + rate
+        if not skip_people then
+          people = ship[i][j].people
+          pr = 0
+          stat = world.seed_rooms[kind].stat
+          for k, p in ipairs(people) do
+            pr = pr + p.stats[stat]
+          end
+          rates[resource] = rates[resource] + (pr / 10)
+        end
       end
     end
   end
@@ -211,12 +256,15 @@ function world.assign(ship, x, y, person)
   if ship[x][y].kind == 'empty' then
     return false
   end
+  if #ship[x][y].people > 1 then
+    return false
+  end
 
   table.insert(ship[x][y].people, person)
   return ship
 end
 
-function world.show_assigned(ship)
+function world.get_assigned(ship)
   assigned = {}
   for i = 1, #ship do
     for j = 1, #ship[1] do

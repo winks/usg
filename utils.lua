@@ -46,4 +46,27 @@ function utils.round2(num, numDecimalPlaces)
   return string.format("%." .. (numDecimalPlaces or 0) .. "f", num)
 end
 
+--- Split a string using a pattern.
+-- @param str The string to search in
+-- @param pat The pattern to search with
+-- @see http://lua-users.org/wiki/SplitJoin
+function utils.split(str, pat)
+  local t = {}  -- NOTE: use {n = 0} in Lua-5.0
+  local fpat = '(.-)' .. pat
+  local last_end = 1
+  local s, e, cap = str:find(fpat, 1)
+  while s do
+    if s ~= 1 or cap ~= '' then
+      t[#t+1] = cap
+    end
+    last_end = e+1
+    s, e, cap = str:find(fpat, last_end)
+  end
+  if last_end <= #str then
+    cap = str:sub(last_end)
+    t[#t+1] = cap
+  end
+  return t
+end
+
 return utils

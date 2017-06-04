@@ -190,6 +190,7 @@ function people.show_person(t)
   for i, k in pairs(t) do
     --print(i .. " : " .. k)
   end
+  print("====================")
   print("Name     : " .. t.name)
   print("Gender   : " .. t.gender)
   print("Affinity : " .. utils.ucfirst(t.affinity))
@@ -200,6 +201,12 @@ function people.show_person(t)
   --print("Skin : " .. t.skin)
   --print("Face : " .. t.face)
   --print("Hair : " .. t.hair)
+  print("====================")
+end
+
+function people.firstname(p)
+  parts = utils.split(p.name, " ")
+  return parts[1]
 end
 
 return people
