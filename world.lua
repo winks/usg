@@ -31,14 +31,14 @@ local seed_resources = {
 world.seed_resources = seed_resources
 world.seed_rooms = seed_rooms
 
-function world.gen_ship(x, y)
-  local ship = {} --utils.shallowcopy(orig)
+function world.gen_ship(xa, ya)
+  local ship = {}
 
-  for y = 1, y do
-    row = {}
-    for x = 1, x do
-      kind = 'empty'
-      if x == 1 and y == 1 then
+  for x = 1, xa do
+    ship[x] = {}
+    for y = 1, ya do
+      local kind = 'empty'
+      if x == 2 and y == 1 then
         kind = 'gen_power'
       end
       room = {
@@ -46,9 +46,8 @@ function world.gen_ship(x, y)
         coords = {x, y},
         people = {},
       }
-      table.insert(row, room)
+      ship[x][y] = room
     end
-    table.insert(ship, row)
   end
 
   return ship
@@ -126,6 +125,7 @@ function world.print_ship(ship, gfx)
     utils.printf("\\")
     print("")
   end -- end gfx
+  -- print rooms
   for x = 1, #ship do
     row = ship[x]
     if gfx then
@@ -224,15 +224,15 @@ function world.get_rates(ship, skip_people)
 
   for i = 1, #ship do
     for j = 1, #ship[1] do
-      kind = ship[i][j].kind
+      local kind = ship[i][j].kind
       if kind ~= 'empty' then
-        resource = seed_rooms[kind].resource
-        rate = seed_rooms[kind].base_rate
+        local resource = seed_rooms[kind].resource
+        local rate = seed_rooms[kind].base_rate
         rates[resource] = rates[resource] + rate
         if not skip_people then
-          people = ship[i][j].people
-          pr = 0
-          stat = world.seed_rooms[kind].stat
+          local people = ship[i][j].people
+          local pr = 0
+          local stat = world.seed_rooms[kind].stat
           for k, p in ipairs(people) do
             pr = pr + p.stats[stat]
           end
@@ -245,13 +245,13 @@ function world.get_rates(ship, skip_people)
 end
 
 function world.update_rates(state, rates)
-  for k, v in pairs(state.resources) do
+  for k, _ in pairs(state.resources) do
     --print(k .. v.rate)
     state.resources[k].rate = rates[k]
   end
-  for k, v in pairs(state.resources) do
+  --for k, v in pairs(state.resources) do
     --print(k .. v.rate)
-  end
+  --end
 end
 
 function world.assign(ship, x, y, person)
@@ -267,13 +267,13 @@ function world.assign(ship, x, y, person)
 end
 
 function world.get_assigned(ship)
-  assigned = {}
-  for i = 1, #ship do
-    for j = 1, #ship[1] do
-      if #ship[i][j].people > 0 then
-        room = ship[i][j].kind
-        for _, person in ipairs(ship[i][j].people) do
-          text = string.format("[%s,%s][%s][%s]", i, j, room, person.name)
+  local assigned = {}
+  for x = 1, #ship do
+    for y = 1, #ship[1] do
+      if #ship[x][y].people > 0 then
+        local room = ship[x][y].kind
+        for _, person in ipairs(ship[x][y].people) do
+          local text = string.format("[%s,%s][%s][%s]", x, y, room, person.name)
           table.insert(assigned, text)
         end
       end

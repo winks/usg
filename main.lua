@@ -7,21 +7,25 @@ function love.load()
   GLOB = {
     DEBUG = true,
     win_size_x = 800,
-    win_size_y = 600,
+    win_size_y = 700,
     win_flags = {resizable = false},
 
-    font_size = 20,
+    font_size = 16,
     world_size_x = 3,
-    world_size_y = 3,
+    world_size_y = 4,
 
     img_h = 150,
     img_w = 150,
 
     margin_x = 40,
-    margin_y = 20,
+    margin_y = 10,
     margin_menu = 5,
     margin_selected = 5,
     margin_names = 5,
+
+    chars_w = 75,
+    -- light green
+    btn_chars_color_bg = {0, 155, 53, 155},
 
     menu_w = 200,
     -- light blue
@@ -30,14 +34,15 @@ function love.load()
     header_h = 25,
     -- dark grey
     header_color_bg = {64, 64, 64, 255},
+
+    tick_new_person = 10,
   }
 
   -- don't change me
   state = {
     -- 1 tick per second
     tick = 0,
-    -- coords: {x, y}
-    selected = {},
+    tick_people = 1,
     -- the layout of the player's ship
     ship = {},
     -- all the player's active characters
@@ -49,6 +54,11 @@ function love.load()
         rate = 0,
       },
     },
+    ui = {
+      -- coords: {x, y}
+      selected = {},
+      show_chars = false,
+    },
   }
 
   -- init love
@@ -56,9 +66,8 @@ function love.load()
 
   -- init game world
   state.chars = {}
-  one = people.generate()
-  --people.show_person(one)
-  state.chars[#state.chars+1] = one
+  local person_one = people.generate()
+  state.chars[#state.chars+1] = person_one
   people.show_person(state.chars[1])
   print("")
 
@@ -66,7 +75,7 @@ function love.load()
   --world.print_ship(ship)
   --print("")
 
-  local result = world.assign(state.ship, 1, 1, one)
+  local result = world.assign(state.ship, 2, 1, person_one)
   utils.dbg(world.get_assigned(state.ship))
 
   world.print_ship(state.ship, true)
@@ -81,7 +90,7 @@ function love.load()
   -- init images for rooms
   images = {}
   local img_x = GLOB.menu_w + GLOB.margin_x
-  local img_y = GLOB.margin_y * 2
+  local img_y = GLOB.header_h + GLOB.margin_y
 
   for x = 1, GLOB.world_size_x do
     images[x] = {}
@@ -99,11 +108,49 @@ function love.load()
   end
 end
 
-function love.draw()
-  draw_header_bg()
-  draw_menu_bg()
+function dim_btn_chars()
+  return 0, 0, GLOB.chars_w, GLOB.header_h
+end
 
-  print_tick(utils.round2(state.tick))
+function draw_btn_chars(state)
+  local x, y, w, h = dim_btn_chars()
+  local text = string.format("People: %s", #state.chars)
+
+  local r, g, b, a = love.graphics.getColor()
+  love.graphics.setColor(GLOB.btn_chars_color_bg)
+  love.graphics.rectangle("fill", x, y, w, h)
+  love.graphics.setColor({r, g, b, a})
+
+  x = GLOB.margin_menu
+  y = GLOB.margin_menu
+  love.graphics.printf(text, x, y, GLOB.chars_w, 'left')
+end
+
+function draw_chars_field(state)
+  if not state.ui.show_chars then
+    return
+  end
+  local text = ""
+  if #state.chars < 1 then
+    text = "No one :(\n"
+  else
+    text = text .. "Characters:\n"
+    for i = 1, #state.chars do
+      text = text .. state.chars[i].name .. "\n"
+    end
+  end
+  local x = 2 * GLOB.margin_menu
+  local y = GLOB.win_size_y - GLOB.margin_menu - ((#state.chars +1) * GLOB.font_size)
+  love.graphics.printf(text, x, y, GLOB.menu_w, 'left')
+end
+
+function love.draw()
+  draw_menu_bg()
+  draw_header_bg()
+  draw_btn_chars(state)
+  draw_chars_field(state)
+
+  draw_tick(utils.round2(state.tick))
   print_resources(state)
 
   for x = 1, #images do
@@ -126,12 +173,27 @@ function love.update(dt)
      plus = dt * state.resources[k].rate
      state.resources[k].amount = state.resources[k].amount + plus
    end
+
+  local diff = state.tick - (state.tick_people * GLOB.tick_new_person)
+  if diff > 0 and diff <= GLOB.tick_new_person  then
+    local person = people.generate()
+    state.chars[#state.chars+1] = person
+    people.show_person(state.chars[#state.chars])
+    state.tick_people = state.tick_people + 1
+  end
 end
 
 function love.mousepressed(x, y, button)
   -- only left-click
   if button == 1 then
-    -- check menu area first
+    -- check btn_chars
+    local xx, yy, w, h = dim_btn_chars()
+    if x >= xx and x <= xx+w and y >= yy and y <= yy+h then
+      print_debug("click: btn_chars @ " .. x .. "," .. y)
+      state.ui.show_chars = not state.ui.show_chars
+      return
+    end
+    -- check menu area
     local m_x1 = GLOB.margin_menu
     local m_x2 = GLOB.margin_menu + GLOB.menu_w
     local m_y1 = GLOB.margin_menu + GLOB.header_h
@@ -150,7 +212,7 @@ function love.mousepressed(x, y, button)
         y2 = v.yy + GLOB.img_h
         if x >= v.xx and x <= x2 and y >= v.yy and y <= y2 then
           print_debug("click: " .. i .. "," .. j)
-          state.selected = {i, j}
+          state.ui.selected = {i, j}
           match = true
         end
       end
@@ -158,7 +220,7 @@ function love.mousepressed(x, y, button)
 
     -- unselect if not in menu and not on room
     if not match then
-      state.selected = {}
+      state.ui.selected = {}
     end
   end
 end
@@ -188,7 +250,7 @@ function draw_menu_bg()
   love.graphics.setColor({r, g, b, a})
 end
 
-function print_tick(text)
+function draw_tick(text)
   if not GLOB.DEBUG then
     return
   end
@@ -202,8 +264,15 @@ function room_infos(state, x, y)
   local room = state.ship[x][y]
   local base = world.seed_rooms[room.kind]
 
-  local text = "Generates [" .. utils.ucfirst(base.resource) .. "]\n"
+  local text = ""
   text = text .. "Stat: [" .. utils.ucfirst(base.stat) .. "]\n"
+  text = text .. "Generates [" .. utils.ucfirst(base.resource) .. "]\n"
+
+  if GLOB.DEBUG then
+    local r = world.get_rates(state)
+    text = text .. "Rate(base): " .. base.base_rate .. "\n"
+    text = text .. "Rate(curr): " .. state.resources[base.resource].rate .. "\n"
+  end
 
   return text
 end
@@ -214,7 +283,7 @@ function draw_selected(state)
   local offset_y = GLOB.img_h - 30
   for x = 1, #state.ship do
     for y = 1, #state.ship[1] do
-      if x == state.selected[1] and y == state.selected[2] then
+      if x == state.ui.selected[1] and y == state.ui.selected[2] then
         -- selected room
         local xx = images[x][y].xx
         local yy = images[x][y].yy
@@ -284,7 +353,7 @@ function people_names(state, x, y, with_empty)
       end
     elseif with_empty then
       text = ""
-      for i = 1, room.capacity do
+      for i = 1, world.seed_rooms[room.kind].capacity do
         text = text .. "[empty slot]\n"
       end
     end
@@ -327,9 +396,9 @@ end
 function print_resources(state)
   local power = state.resources.power.amount
   local text = string.format("[Power: %d]", power)
-  local x = GLOB.margin_menu
+  local x = GLOB.margin_menu + GLOB.chars_w
   local y = GLOB.margin_menu
-  local limit = GLOB.win_size_x/2
+  local limit = GLOB.win_size_x * 3 / 4
   love.graphics.printf(text, x, y, limit, 'left')
 end
 
