@@ -1,6 +1,9 @@
 local utils = {}
 
 function utils.dbg(t)
+  if not GLOB.DEBUG then
+    return
+  end
   if #t > 0 then
   for i, k in ipairs(t) do
     if type(k) == 'table' then

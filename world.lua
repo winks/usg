@@ -11,6 +11,7 @@ local seed_rooms = {
     base_rate  = 0,
     build_cost = 0,
     resource   = 'empty',
+    capacity   = 0,
   },
   gen_power = {
     name       = "Power Generator",
@@ -19,6 +20,7 @@ local seed_rooms = {
     base_rate  = 1,
     build_cost = 1,
     resource   = 'power',
+    capacity   = 2,
   },
 }
 
