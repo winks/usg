@@ -4,6 +4,10 @@ function utils.dbg(t)
   if not GLOB.DEBUG then
     return
   end
+  if type(t) ~= 'table' then
+    print(t)
+	return
+  end
   if #t > 0 then
   for i, k in ipairs(t) do
     if type(k) == 'table' then
@@ -70,6 +74,10 @@ function utils.split(str, pat)
     t[#t+1] = cap
   end
   return t
+end
+
+function utils.dim(t)
+  return t.x, t.y, t.w, t.h
 end
 
 return utils

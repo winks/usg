@@ -90,19 +90,24 @@ local seed_last = {
   'Sin',
   'Krikorian',
 }
+
 local seed_genders = {
   'female',
   'male',
 }
+
 local seed_skin = {
   'a', 'b', 'c'
 }
+
 local seed_face = {
   'a', 'b', 'c'
 }
+
 local seed_hair = {
   'a', 'b', 'c'
 }
+
 local seed_stats = {
   'strength',
   'constitution',
@@ -117,7 +122,6 @@ STAT_MAX = 10
 STAT_START_INIT = #seed_stats
 STAT_START_FREE = 12
 STAT_START_MAX = 4
-
 
 function people.rand_stat()
   local n = math.random(#seed_stats)
@@ -187,7 +191,7 @@ function people.generate()
   return person
 end
 
-function people.show_person(t)
+function people.print_person(t)
   for i, k in pairs(t) do
     --print(i .. " : " .. k)
   end
@@ -216,5 +220,8 @@ function people.firstname(p)
   parts = utils.split(p.name, " ")
   return parts[1]
 end
+
+people.Genders = seed_genders
+people.Stats = seed_stats
 
 return people

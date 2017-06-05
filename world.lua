@@ -28,8 +28,6 @@ local seed_resources = {
   'power'
 }
 
-world.seed_resources = seed_resources
-world.seed_rooms = seed_rooms
 
 function world.gen_ship(xa, ya)
   local ship = {}
@@ -218,7 +216,7 @@ end
 
 function world.get_rates(ship, skip_people)
   local rates = {}
-  for _, k in ipairs(world.seed_resources) do
+  for _, k in ipairs(world.Resources) do
     rates[k] = 0
   end
 
@@ -232,7 +230,7 @@ function world.get_rates(ship, skip_people)
         if not skip_people then
           local people = ship[i][j].people
           local pr = 0
-          local stat = world.seed_rooms[kind].stat
+          local stat = world.Rooms[kind].stat
           for k, p in ipairs(people) do
             pr = pr + p.stats[stat]
           end
@@ -281,5 +279,8 @@ function world.get_assigned(ship)
   end
   return assigned
 end
+
+world.Resources = seed_resources
+world.Rooms = seed_rooms
 
 return world
