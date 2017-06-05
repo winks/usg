@@ -24,8 +24,6 @@ function love.load()
     margin_names = 5,
 
     chars_w = 75,
-    -- light green
-    btn_chars_color_bg = {0, 155, 53, 155},
 
     menu_w = 200,
     -- light blue
@@ -75,7 +73,7 @@ function love.load()
   --world.print_ship(ship)
   --print("")
 
-  local result = world.assign(state.ship, 2, 1, person_one)
+  --local result = world.assign(state.ship, 2, 1, person_one)
   utils.dbg(world.get_assigned(state.ship))
 
   world.print_ship(state.ship, true)
@@ -106,24 +104,54 @@ function love.load()
       --print_debug("yy " .. yy)
     end
   end
+
+  UI = {}
+  UI.btn = {}
+  UI.btn.chars = {
+    x = 0,
+    y = 0,
+    w = GLOB.chars_w,
+    h = GLOB.header_h,
+    bg = {0, 155, 53, 155},
+    tx = GLOB.margin_menu,
+    ty = GLOB.margin_menu,
+    tl = GLOB.chars_w,
+    ta = 'left',
+  }
+  UI.btn.assignedLeft = {
+    x = GLOB.margin_menu * 2,
+    y = GLOB.menu_w,
+    w = (GLOB.menu_w / 2) - GLOB.margin_menu,
+    h = GLOB.header_h,
+    bg = {0, 55, 53, 155},
+    tx = GLOB.margin_menu,
+    ty = GLOB.margin_menu,
+    tl = GLOB.menu_w / 2,
+    ta = 'left',
+  }
+  UI.btn.assignedRight = {
+    x = GLOB.margin_menu + (GLOB.menu_w / 2),
+    y = GLOB.menu_w,
+    w = (GLOB.menu_w / 2) - GLOB.margin_menu,
+    h = GLOB.header_h,
+    bg = {0, 35, 53, 155},
+    tx = GLOB.margin_menu,
+    ty = GLOB.margin_menu,
+    tl = GLOB.menu_w / 2,
+    ta = 'left',
+  }
 end
 
-function dim_btn_chars()
-  return 0, 0, GLOB.chars_w, GLOB.header_h
+function dim(t)
+  return t.x, t.y, t.w, t.h
 end
 
-function draw_btn_chars(state)
-  local x, y, w, h = dim_btn_chars()
-  local text = string.format("People: %s", #state.chars)
-
+function drawButton(t, text)
   local r, g, b, a = love.graphics.getColor()
-  love.graphics.setColor(GLOB.btn_chars_color_bg)
-  love.graphics.rectangle("fill", x, y, w, h)
+  love.graphics.setColor(t.bg)
+  love.graphics.rectangle("fill", t.x, t.y, t.w, t.h)
   love.graphics.setColor({r, g, b, a})
-
-  x = GLOB.margin_menu
-  y = GLOB.margin_menu
-  love.graphics.printf(text, x, y, GLOB.chars_w, 'left')
+  love.graphics.printf(text, t.x + t.tx, t.y + t.ty, t.tl, t.ta)
 end
 
 function draw_chars_field(state)
@@ -147,7 +175,18 @@ end
 function love.draw()
   draw_menu_bg()
   draw_header_bg()
-  draw_btn_chars(state)
+  drawButton(UI.btn.chars, string.format("People: %s", #state.chars))
+
+  if state.ui.selected.coords and #state.ui.selected.coords > 0 then
+    local room = state.ui.selected
+    if room.kind ~= 'empty' then
+      local left = room.people[1]
+      local right = room.people[2]
+      local em = "[empty]"
+      drawButton(UI.btn.assignedLeft, left and people.firstname(left) or em)
+      drawButton(UI.btn.assignedRight, right and people.firstname(right) or em)
+    end
+  end
   draw_chars_field(state)
 
   draw_tick(utils.round2(state.tick))
@@ -166,13 +205,15 @@ function love.draw()
 end
 
 function love.update(dt)
-   -- one tick per second
-   state.tick = state.tick + dt
-   -- update resources, (rate * tick)
-   for k, _ in pairs(state.resources) do
-     plus = dt * state.resources[k].rate
-     state.resources[k].amount = state.resources[k].amount + plus
-   end
+  -- one tick per second
+  state.tick = state.tick + dt
+  -- update resources, (rate * tick)
+  for k, _ in pairs(state.resources) do
+    plus = dt * state.resources[k].rate
+    state.resources[k].amount = state.resources[k].amount + plus
+  end
+
+  world.update_rates(state, world.get_rates(state.ship))
 
   local diff = state.tick - (state.tick_people * GLOB.tick_new_person)
   if diff > 0 and diff <= GLOB.tick_new_person  then
@@ -183,15 +224,55 @@ function love.update(dt)
   end
 end
 
+function checkClicked(t, x, y)
+  local xx, yy, w, h = dim(t)
+  if x >= xx and x <= xx+w and y >= yy and y <= yy+h then
+    print_debug("click: btn @ " .. x .. "," .. y)
+    return true
+  end
+  return false
+end
+
 function love.mousepressed(x, y, button)
   -- only left-click
   if button == 1 then
     -- check btn_chars
-    local xx, yy, w, h = dim_btn_chars()
-    if x >= xx and x <= xx+w and y >= yy and y <= yy+h then
-      print_debug("click: btn_chars @ " .. x .. "," .. y)
+    if checkClicked(UI.btn.chars, x, y) then
       state.ui.show_chars = not state.ui.show_chars
       return
+    end
+    -- check assign buttons
+    if state.ui.selected.coords and state.ui.selected.kind ~= 'empty' then
+      if checkClicked(UI.btn.assignedLeft, x, y) then
+        if #state.ui.selected.people < 1 and #state.chars > 0 then
+          local x, y = unpack(state.ui.selected.coords)
+          for i = 1, #state.chars do
+            if #state.chars[i].assigned < 1 then
+              world.assign(state.ship, x, y, state.chars[#state.chars])
+              people.show_person(state.chars[#state.chars])
+              return
+            else
+              print_debug(string.format("%s is assigned already", state.chars[i].name))
+            end
+          end
+        end
+        return
+      end
+      if checkClicked(UI.btn.assignedRight, x, y) then
+        if #state.ui.selected.people < 2 and #state.chars > 0 then
+          local x, y = unpack(state.ui.selected.coords)
+          for i = 1, #state.chars do
+            if #state.chars[i].assigned < 1 then
+              world.assign(state.ship, x, y, state.chars[#state.chars])
+              people.show_person(state.chars[#state.chars])
+              return
+            else
+              print_debug(string.format("%s is assigned already", state.chars[i].name))
+            end
+          end
+        end
+        return
+      end
     end
     -- check menu area
     local m_x1 = GLOB.margin_menu
@@ -203,6 +284,7 @@ function love.mousepressed(x, y, button)
       return
     end
 
+    -- default area, images
     local v
     local match = false
     for i = 1, #state.ship do
@@ -212,13 +294,13 @@ function love.mousepressed(x, y, button)
         y2 = v.yy + GLOB.img_h
         if x >= v.xx and x <= x2 and y >= v.yy and y <= y2 then
           print_debug("click: " .. i .. "," .. j)
-          state.ui.selected = {i, j}
+          state.ui.selected = state.ship[i][j]
           match = true
         end
       end
     end
 
-    -- unselect if not in menu and not on room
+    -- unselect if not: in menu, on room
     if not match then
       state.ui.selected = {}
     end
@@ -279,11 +361,14 @@ end
 
 -- @TODO onclick
 function draw_selected(state)
+  if not state.ui.selected.coords then
+    return
+  end
   local offset_x = GLOB.img_w - 30
   local offset_y = GLOB.img_h - 30
   for x = 1, #state.ship do
     for y = 1, #state.ship[1] do
-      if x == state.ui.selected[1] and y == state.ui.selected[2] then
+      if x == state.ui.selected.coords[1] and y == state.ui.selected.coords[2] then
         -- selected room
         local xx = images[x][y].xx
         local yy = images[x][y].yy

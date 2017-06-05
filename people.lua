@@ -181,7 +181,8 @@ function people.generate()
     skin   = math.random(#seed_skin),
     hair   = math.random(#seed_hair),
     face   = math.random(#seed_face),
-    affinity = seed_stats[math.random(#seed_stats)]
+    affinity = seed_stats[math.random(#seed_stats)],
+    assigned = {},
   }
   return person
 end
@@ -190,12 +191,19 @@ function people.show_person(t)
   for i, k in pairs(t) do
     --print(i .. " : " .. k)
   end
+  local ass
+  if #t.assigned > 0 then
+    ass = string.format("[%s,%s]", t.assigned[1], t.assigned[2])
+  else
+    ass = "No"
+  end
   print("====================")
   print("Name     : " .. t.name)
   print("Gender   : " .. t.gender)
   print("Affinity : " .. utils.ucfirst(t.affinity))
   print("Weapon   : None")
   print("Armor    : None")
+  print("Assigned : " .. ass)
   print("Stats    :")
   people.print_stats(t.stats)
   --print("Skin : " .. t.skin)

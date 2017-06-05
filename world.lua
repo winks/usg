@@ -261,7 +261,7 @@ function world.assign(ship, x, y, person)
   if #ship[x][y].people > 1 then
     return false
   end
-
+  person.assigned = {x, y}
   table.insert(ship[x][y].people, person)
   return ship
 end
